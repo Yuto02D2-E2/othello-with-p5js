@@ -15,6 +15,10 @@ body {
     font-family: 'Source Code Pro', 'Klee One', monospace;
 }
 
+div#container {
+    margin: 50px 50px 0px 50px;
+}
+
 footer {
     width: 100vw;
     padding: 30px 0;
