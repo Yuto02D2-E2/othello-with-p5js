@@ -3,7 +3,7 @@ let game; // ゲームオブジェクト;ゲームに関するあらゆる情報
 
 function preload() {
     // 効果音，フォントを読み込む
-    // fontObj = loadFont("assets/xxx.otf");
+    fontObj = loadFont("./assets/SourceCodePro-Light.otf");
 }
 
 
@@ -16,7 +16,7 @@ function setup() {
 
     textSize(32);
     textAlign(CENTER, CENTER);
-    // textFont(fontObj);
+    textFont(fontObj);
     rectMode(CORNER); // (lx,ly,width,height)
     ellipseMode(CORNER); // (lx,ly,width,height)
     cursor("grab"); // 手の形のカーソルにする
