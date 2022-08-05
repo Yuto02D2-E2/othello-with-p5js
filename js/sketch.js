@@ -1,6 +1,12 @@
 let game; // ゲームオブジェクト;ゲームに関するあらゆる情報を持つ
 
 
+function preload() {
+    // 効果音，フォントを読み込む
+    // fontObj = loadFont("assets/xxx.otf");
+}
+
+
 function setup() {
     // sketch.jsが全て読み込まれた？タイミングで一度だけ呼ばれる
     console.log("[INFO] sketch.js/setup() is called.");
@@ -8,6 +14,9 @@ function setup() {
     const canvas = createCanvas(window.innerWidth, window.innerHeight);
     canvas.parent("canvas"); // 親要素<div;id=canvas>を指定することにより，CSSで扱いやすくなる
 
+    textSize(32);
+    textAlign(CENTER, CENTER);
+    // textFont(fontObj);
     rectMode(CORNER); // (lx,ly,width,height)
     ellipseMode(CORNER); // (lx,ly,width,height)
     cursor("grab"); // 手の形のカーソルにする
@@ -36,7 +45,7 @@ function mouseClicked() {
     // マウスをクリックして離したタイミングで呼ばれる．盤の情報を更新する
     const [y, x] = game.pos_to_idx(mouseY, mouseX);
     if (game.is_board_inside(y, x)) {
-        game.update(mouseY, mouseX);
+        game.update(y, x);
     }
 }
 
@@ -47,7 +56,7 @@ function keyPressed() {
         if (window.confirm("ゲームを初期化します．よろしいですか？")) {
             game.init();
         }
-    } else {
+    } else if (keyCode === 72) { // 'h' key
         game.help();
     }
 }
@@ -63,6 +72,7 @@ class Game {
             WHITE: color(255, 255, 255),
             BLACK: color(0, 0, 0),
             SPACE: color(127, 255, 127),
+            HIGHLIGHT: color("#ffff7f"),
             // SPACE: color("hsba(160, 100%, 50%, 0.5)"),
             // AVAILABLE: color("rgba(255,127,255,0.5)"),
             // AVAILABLE: color("#ffccff"),
@@ -79,8 +89,8 @@ class Game {
         // MEMO: debug用
         this.mode = "Single";
         this.player = [
-            new User("user", this.STONE.BLACK, this.CELL_NUM), // 先攻が黒らしい
-            new Computer("computer", this.STONE.WHITE, this.CELL_NUM)
+            new User("user", this.STONE.BLACK), // 先攻が黒らしい
+            new Computer("computer", this.STONE.WHITE)
         ];
         // if (window.confirm("モードを選択してください．\nプレイ人数は1人ですか？")) {
         //     this.mode = "Single";
@@ -112,10 +122,9 @@ class Game {
                 }
             }
         }
-        // console.info(this.board);
         // init player
         this.player_idx = 0;
-        this.check_available();
+        this.update_availables();
     }
 
     draw() {
@@ -128,10 +137,11 @@ class Game {
                 fill(this.STONE.SPACE);
                 const lx = x * this.CELL_SIZE, ly = y * this.CELL_SIZE;
                 square(lx, ly, this.CELL_SIZE); // 外枠; (lx,ly,size)
+                const r = this.CELL_SIZE * 0.8; // 円のサイズをマス目の8割のサイズにする
                 if (this.board[y][x] === this.STONE.SPACE) {
-                    if (this.player[this.player_idx].availables.includes([y, x])) {
+                    if (this.player[this.player_idx].is_available(y, x)) {
                         // 置ける場所をハイライト
-                        stroke(255, 127, 255, 0.5);
+                        stroke(this.STONE.HIGHLIGHT);
                         noFill();
                     } else {
                         continue;
@@ -141,29 +151,32 @@ class Game {
                     noStroke();
                     fill(this.board[y][x]);
                 }
-                const r = this.CELL_SIZE * 0.8; // 円のサイズをマス目の8割のサイズにする
                 ellipse(lx + r * 0.1, ly + r * 0.1, r); // (lx,ly,r)
             }
         }
+        fill(this.STONE.BLACK);
+        text(
+            `current player:${this.player[this.player_idx].get_name} / ${this.player[this.player_idx].stone_color}`,
+            0, // lx
+            this.BOARD_SIZE + 120, // ly
+            window.innerWidth, // text width
+        );
     }
 
-    update(mouse_y, mouse_x) {
+    update(y, x) {
         console.log("[INFO] sketch.js/Game/game.update() is called");
-        const [y, x] = this.pos_to_idx(mouse_y, mouse_x); // unpack
         if (!this.put_stone(y, x)) {
             console.log("その場所に置くことは出来ません．\nハイライトされている部分のみ置くことが出来ます");
             // window.alert("その場所に置くことは出来ません．\nハイライトされている部分のみ置くことが出来ます");
             return;
         }
-        // this.player[this.player_idx].flip_stone();
-        // this.player[this.player_idx].update_score();
+        this.flip_stone();
         this.player_idx ^= 1;
-        if (this.check_available() === 0) {
-            console.log("次のプレイヤーが打てる場所はありません．パスします");
-            // window.alert("次のプレイヤーが打てる場所はありません．パスします");
+        if (this.update_availables() === 0) {
+            window.alert("次のプレイヤーが打てる場所はありません．パスします");
             this.player_idx ^= 1;
         }
-        if (is_game_over()) {
+        if (this.is_game_over()) {
             this.ending();
         }
     }
@@ -176,16 +189,16 @@ class Game {
 
     help() {
         window.alert(`
-        キーボードからの入力を検知しました．
-        [INFO]
+        [HELP]
+        これはヘルプ画面です．
         1. r キーでゲームを初期化
-        2. その他のキーでヘルプを表示
+        2. h キーでヘルプを表示
         できます．
         `);
     }
 
     pos_to_idx(mouse_y, mouse_x) {
-        console.log(`[INFO] pos2idx:(mouseY,mouseX)=(${mouse_y},${mouse_x})`);
+        console.log(`[INFO] pos2idx:(${mouse_y},${mouse_x}) -> (${Math.floor(mouse_y / this.CELL_SIZE)},${Math.floor(mouse_x / this.CELL_SIZE)})`);
         return [
             Math.floor(mouse_y / this.CELL_SIZE),
             Math.floor(mouse_x / this.CELL_SIZE),
@@ -199,23 +212,19 @@ class Game {
     }
 
     put_stone(y, x) {
-        if (this.player[this.player_idx].availables.includes([y, x])) {
+        if (this.player[this.player_idx].is_available(y, x)) {
             this.board[y][x] = this.player[this.player_idx].stone_color;
             return true;
         }
         return false;
     }
 
-    check_available() {
-        // 置ける場所をハイライト表示
-        // 置ける場所 := 相手の石を1つ以上挟むことが出来る場所
-        // もしも，打てる場所が一つも無い場合はパス．aleatを出す．
-        // 方針：場所を全探索して，置けるかどうか判定する．判定するために，8方向それぞれを見て，隣に別の色が居て，それ以降に同じ色が出てこればok
-        this.player[this.player_idx].availables.splice(0); // all clear
+    update_availables() {
+        this.player[this.player_idx].availables = new Array(); // all clear (reset)
         for (let y = 1; y < this.CELL_NUM; y++) {
             for (let x = 1; x < this.CELL_NUM; x++) {
-                if ((this.board[y][x] === this.STONE.SPACE) && this.is_available(y, x)) {
-                    this.player[this.player_idx].availables.push([y, x]);
+                if (this.is_available(y, x)) {
+                    this.player[this.player_idx].availables.push({ y: y, x: x });
                 }
             }
         }
@@ -229,12 +238,15 @@ class Game {
         for (let i = 0; i < directions.length; i++) {
             const [dy, dx] = directions[i];
             let line = new Array();
-            while (this.is_board_inside(y + dy, x + dx)) {
-                if (this.board[y + dy][x + dx] === this.STONE.SPACE) break;
-                line.push(this.board[y + dy][x + dx]);
-                if (this.board[y + dy][x + dx] === this.player[this.player_idx].stone_color) break;
+            let cur_y = y, cur_x = x;
+            while (this.is_board_inside(cur_y + dy, cur_x + dx)) {
+                if (this.board[cur_y + dy][cur_x + dx] === this.STONE.SPACE) break;
+                line.push(this.board[cur_y + dy][cur_x + dx]);
+                if (this.board[cur_y + dy][cur_x + dx] === this.player[this.player_idx].stone_color) break;
+                cur_y += dy, cur_x += dx;
             }
-            // console.log(`(${y},${x},${y + dy},${x + dx}) -> line:${line}`);
+            if (line.length <= 1) continue;
+            // この時点で 1 < length は保証されているので，line[line.length-1]が配列外参照を起こすことは無い
             if ((line[0] === this.player[this.player_idx ^ 1].stone_color) &&
                 (line[line.length - 1] === this.player[this.player_idx].stone_color)) {
                 return true;
@@ -271,6 +283,14 @@ class Player {
     get get_score() {
         return this.score;
     }
+
+    is_available(y, x) {
+        // return: playerが(y,x)に置けるかどうか
+        for (const ele of this.availables) {
+            if (ele.y === y && ele.x === x) return true;
+        }
+        return false;
+    }
 }
 
 
@@ -293,7 +313,7 @@ class Computer extends Player {
     // override
     put_stone() {
         // 人間らしさを演出するために，1-3[sec]ぐらい待ってから置く．
-        // check_available()で得られた中からランダムに選ぶ．
+        // update_availables()で得られた中からランダムに選ぶ．
         // Feature(余裕があれば): 数手先を考えて最も多くひっくり返せる場所を選択
     }
 }
