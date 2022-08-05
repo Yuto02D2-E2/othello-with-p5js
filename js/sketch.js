@@ -206,8 +206,8 @@ class Game {
     }
 
     is_board_inside(y, x) { // y,x is index
-        if ((y < 0) || (this.CELL_NUM < y)) return false;
-        if ((x < 0) || (this.CELL_NUM < x)) return false;
+        if ((y <= 0) || (this.CELL_NUM < y)) return false;
+        if ((x <= 0) || (this.CELL_NUM < x)) return false;
         return true;
     }
 
@@ -221,8 +221,8 @@ class Game {
 
     update_availables() {
         this.player[this.player_idx].availables = new Array(); // all clear (reset)
-        for (let y = 1; y < this.CELL_NUM; y++) {
-            for (let x = 1; x < this.CELL_NUM; x++) {
+        for (let y = 1; y <= this.CELL_NUM; y++) {
+            for (let x = 1; x <= this.CELL_NUM; x++) {
                 if (this.is_available(y, x)) {
                     this.player[this.player_idx].availables.push({ y: y, x: x });
                 }
