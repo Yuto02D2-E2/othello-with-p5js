@@ -111,26 +111,9 @@ class Game {
         this.board = Array.from( // create 2D array (initialize value: this.stone.space)
             new Array(this.CELL_NUM), _ => new Array(this.CELL_NUM).fill(this.STONE.SPACE)
         );
-        if (window.confirm("モードを選択してください．\nプレイ人数は1人ですか？")) {
-            this.mode = "Single";
-            this.player = [
-                new User("user", this.STONE.BLACK),
-                new Computer("computer", this.STONE.WHITE)
-            ];
-        } else {
-            this.mode = "Multi";
-            this.player = [
-                new User("player1", this.STONE.BLACK),
-                new User("player2", this.STONE.WHITE)
-            ];
-        }
-        // // MEMO: debug用
-        // this.mode = "Single";
-        // this.player_idx = 0;
-        // this.player = [
-        //     new User("user", this.STONE.BLACK), // 先攻が黒らしい
-        //     new Computer("computer", this.STONE.WHITE)
-        // ];
+        this.mode;
+        this.player;
+        this.player_idx = 0;
         this.device = this.get_device();
         this.directions = [ // 移動用．(y, x). 上から時計回り
             [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]
@@ -152,10 +135,19 @@ class Game {
             }
         }
         // init player
-        this.player = [
-            new User("user", this.STONE.BLACK), // 先攻が黒らしい
-            new Computer("computer", this.STONE.WHITE)
-        ];
+        if (window.confirm("モードを選択してください．\nプレイ人数は1人ですか？")) {
+            this.mode = "Single";
+            this.player = [
+                new User("user", this.STONE.BLACK),
+                new Computer("computer", this.STONE.WHITE)
+            ];
+        } else {
+            this.mode = "Multi";
+            this.player = [
+                new User("player1", this.STONE.BLACK),
+                new User("player2", this.STONE.WHITE)
+            ];
+        }
         this.player_idx = 0;
         this.update_availables();
     }
