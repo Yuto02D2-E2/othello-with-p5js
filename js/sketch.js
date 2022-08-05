@@ -1,5 +1,5 @@
 let game; // ゲームオブジェクト;ゲームに関するあらゆる情報を持つ
-const DEBUG = true;
+const DEBUG = false;
 
 
 function preload() {
@@ -38,7 +38,7 @@ function setup() {
     cursor("grab"); // 手の形のカーソルにする
     frameRate(60); // 60[fps]
 
-    // game.help();
+    game.help();
     if (DEBUG) {
         console.log(`[INFO] inner (W,H)=(${window.innerWidth},${window.innerHeight})`);
         const container = document.getElementById("container");
